@@ -1,4 +1,11 @@
 // Login session + per-account score tracking, checked against the static ACCOUNTS list.
+//
+// Storage strategy: localStorage is always the fast, synchronous read cache every
+// page renders from immediately. When js/firebase-config.js has real credentials,
+// this also mirrors every write to a shared Firebase Realtime Database and keeps
+// the local cache updated from a live listener — so everyone's points/history sync
+// across devices/browsers, not just within one machine. With no config filled in,
+// this module behaves exactly like local-only storage (today's behavior).
 const Auth = (function () {
   const SESSION_KEY = "programquiz-session";
   const PROGRESS_KEY = "programquiz-progress-v2";
@@ -40,8 +47,42 @@ const Auth = (function () {
     return data && typeof data === "object" ? data : {};
   }
 
-  function saveProgress(data) {
+  // ---------- cloud sync (optional — only active once FIREBASE_CONFIG is real) ----------
+  let db = null;
+  const syncListeners = [];
+  let readyResolve;
+  const ready = new Promise(function (resolve) { readyResolve = resolve; });
+
+  const hasRealConfig = typeof FIREBASE_CONFIG !== "undefined" &&
+    FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf("YOUR_") !== 0;
+
+  if (hasRealConfig && typeof firebase !== "undefined") {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    db.ref("users").on("value", function (snapshot) {
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(snapshot.val() || {}));
+      readyResolve();
+      syncListeners.forEach(function (fn) { fn(); });
+    }, function () {
+      // Permission denied or offline — fall back to whatever's cached locally.
+      readyResolve();
+    });
+  } else {
+    readyResolve();
+  }
+
+  // Call fn to be notified whenever fresh cloud data has been merged into the
+  // local cache, so a page can re-render with everyone's latest scores.
+  function onCloudSync(fn) {
+    syncListeners.push(fn);
+  }
+
+  // Saves the whole local blob (unchanged local-only behavior), then — if cloud
+  // sync is on — also pushes just this one user's slice up to Firebase, so a
+  // stale full local snapshot never overwrites other users' live cloud data.
+  function persistUser(username, data) {
     localStorage.setItem(PROGRESS_KEY, JSON.stringify(data));
+    if (db) db.ref("users/" + username).set(data[username]);
   }
 
   function getTopicProgress(username, topic) {
@@ -60,7 +101,7 @@ const Auth = (function () {
     const prev = data[username][topic] || blankTopicProgress();
     const isNewBest = score > prev.best;
     data[username][topic] = { best: isNewBest ? score : prev.best, attempts: prev.attempts + 1, missed: prev.missed || [] };
-    saveProgress(data);
+    persistUser(username, data);
     return isNewBest;
   }
 
@@ -79,13 +120,36 @@ const Auth = (function () {
       missed.push(questionId);
     }
     record.missed = missed;
-    saveProgress(data);
+    persistUser(username, data);
   }
 
   function resetProgress(username) {
     const data = loadProgress();
-    data[username] = { html: blankTopicProgress(), css: blankTopicProgress() };
-    saveProgress(data);
+    const existingHistory = (data[username] && data[username].history) || [];
+    data[username] = { html: blankTopicProgress(), css: blankTopicProgress(), history: existingHistory };
+    persistUser(username, data);
+  }
+
+  const MAX_HISTORY = 30;
+
+  // Saves a completed attempt (normal or missed-review) for the history page.
+  // Only stores { id, chosenIndex, correct } per question — the question text
+  // itself is looked up from QUESTIONS at render time, not duplicated here.
+  function recordAttempt(username, attempt) {
+    const data = loadProgress();
+    if (!data[username]) data[username] = { html: blankTopicProgress(), css: blankTopicProgress(), history: [] };
+    if (!data[username].history) data[username].history = [];
+    data[username].history.unshift(attempt);
+    if (data[username].history.length > MAX_HISTORY) {
+      data[username].history.length = MAX_HISTORY;
+    }
+    persistUser(username, data);
+  }
+
+  function getHistory(username) {
+    const data = loadProgress();
+    const user = data[username];
+    return (user && user.history) || [];
   }
 
   function totalPoints(username) {
@@ -105,12 +169,16 @@ const Auth = (function () {
   }
 
   return {
+    ready: ready,
+    onCloudSync: onCloudSync,
     login: login,
     logout: logout,
     getCurrentAccount: getCurrentAccount,
     getTopicProgress: getTopicProgress,
     recordScore: recordScore,
     recordAnswer: recordAnswer,
+    recordAttempt: recordAttempt,
+    getHistory: getHistory,
     resetProgress: resetProgress,
     totalPoints: totalPoints,
     leaderboard: leaderboard

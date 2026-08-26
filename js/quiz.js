@@ -10,6 +10,14 @@
     return;
   }
 
+  document.getElementById("question-card").innerHTML = "<p>Loading&hellip;</p>";
+
+  // Wait for the initial cloud sync (a no-op if Firebase isn't configured) so a
+  // missed-questions review always starts from the latest data, even if the
+  // wrong answer was recorded on a different device.
+  Auth.ready.then(startQuiz);
+
+  function startQuiz() {
   const account = Auth.getCurrentAccount();
   if (!account) {
     document.getElementById("question-card").innerHTML =
@@ -159,6 +167,16 @@
     resultsEl.classList.remove("hidden");
 
     const isNewBest = isMissedMode ? false : Auth.recordScore(account.username, topic, score);
+    Auth.recordAttempt(account.username, {
+      topic: topic,
+      mode: isMissedMode ? "missed" : "normal",
+      timestamp: Date.now(),
+      score: score,
+      maxScore: maxScore,
+      answers: items.map(function (item, i) {
+        return { id: item.id, chosenIndex: answers[i].chosenIndex, correct: answers[i].correct };
+      })
+    });
     const percent = Math.round((score / maxScore) * 100);
 
     let html = "<div class=\"results-summary\">";
@@ -184,6 +202,7 @@
     } else {
       html += "<a class=\"btn btn-start\" href=\"quiz.html?topic=" + topic + "\">Retry Quiz</a>";
     }
+    html += "<a class=\"btn btn-ghost\" href=\"history.html\">View History</a>";
     html += "<a class=\"btn btn-ghost\" href=\"index.html\">Back to Home</a>";
     html += "</div></div>";
 
@@ -210,4 +229,5 @@
   }
 
   renderQuestion();
+  }
 })();

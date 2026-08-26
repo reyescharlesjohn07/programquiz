@@ -264,6 +264,7 @@ code, .mono {
 .stat { display: flex; flex-direction: column; }
 .stat-num { font-size: 2rem; font-weight: 800; color: var(--brand-strong); }
 .stat-label { color: var(--muted); font-size: 0.9rem; }
+.stats-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 
 /* ---------- login ---------- */
 .auth-gate h2 { margin-top: 0; color: var(--ink); }
@@ -324,6 +325,40 @@ code, .mono {
 .lb-name { font-weight: 700; grid-column: 2; color: var(--ink); }
 .lb-total { font-weight: 700; color: var(--brand-strong); grid-column: 3; }
 .lb-detail { grid-column: 2 / span 2; color: var(--muted); font-size: 0.85rem; }
+
+/* ---------- history ---------- */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.history-entry { padding: 0; }
+.history-summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  padding: 1.1rem 1.5rem;
+  font-weight: 700;
+}
+.history-summary::-webkit-details-marker { display: none; }
+.history-summary::before {
+  content: "\25B8";
+  color: var(--brand-strong);
+  margin-right: 0.25rem;
+}
+.history-entry[open] .history-summary::before { content: "\25BE"; }
+.history-topic { color: var(--ink); }
+.history-date { color: var(--muted); font-weight: 500; font-size: 0.9rem; }
+.history-score { color: var(--brand-strong); margin-left: auto; }
+.history-entry .review-list {
+  padding: 0 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
 
 .site-footer {
   text-align: center;

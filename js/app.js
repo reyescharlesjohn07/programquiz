@@ -124,5 +124,8 @@
     });
   }
 
-  renderGate();
+  Auth.ready.then(function () {
+    renderGate();
+    Auth.onCloudSync(renderGate);
+  });
 })();

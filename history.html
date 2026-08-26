@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ProgramQuiz &mdash; Quiz</title>
+<title>ProgramQuiz &mdash; History</title>
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -14,22 +14,15 @@
 <header class="quiz-header">
   <a href="index.html" class="back-link">&larr; Home</a>
   <div class="quiz-title-wrap">
-    <div id="quiz-title" class="quiz-title"></div>
-    <div id="quiz-player" class="quiz-player"></div>
+    <div class="quiz-title">Quiz History</div>
+    <div id="history-player" class="quiz-player"></div>
   </div>
-  <div class="score-tracker">Score: <span id="current-score">0</span></div>
+  <span class="back-link" style="visibility:hidden;">&larr; Home</span>
 </header>
 
-<div class="progress-wrap">
-  <div id="progress-bar" class="progress-bar"></div>
-</div>
-<div id="round-label" class="round-label"></div>
-
-<main id="quiz-main" class="quiz-main">
-  <div id="question-card" class="question-card"></div>
+<main class="quiz-main">
+  <div id="history-content"></div>
 </main>
-
-<section id="results" class="results hidden"></section>
 
 <script src="js/questions.js"></script>
 <script src="js/accounts.js"></script>
@@ -37,6 +30,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script src="js/auth.js"></script>
-<script src="js/quiz.js"></script>
+<script src="js/history.js"></script>
 </body>
 </html>
