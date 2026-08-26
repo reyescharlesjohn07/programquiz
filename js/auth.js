@@ -27,7 +27,7 @@ const Auth = (function () {
   }
 
   function blankTopicProgress() {
-    return { best: 0, attempts: 0 };
+    return { best: 0, attempts: 0, missed: [] };
   }
 
   function loadProgress() {
@@ -48,7 +48,9 @@ const Auth = (function () {
     const data = loadProgress();
     const user = data[username];
     if (!user || !user[topic]) return blankTopicProgress();
-    return user[topic];
+    const record = user[topic];
+    // Older saved records predate the `missed` list, so default it in.
+    return { best: record.best || 0, attempts: record.attempts || 0, missed: record.missed || [] };
   }
 
   // Records a completed quiz attempt for a topic, keeping the best score seen.
@@ -57,9 +59,27 @@ const Auth = (function () {
     if (!data[username]) data[username] = { html: blankTopicProgress(), css: blankTopicProgress() };
     const prev = data[username][topic] || blankTopicProgress();
     const isNewBest = score > prev.best;
-    data[username][topic] = { best: isNewBest ? score : prev.best, attempts: prev.attempts + 1 };
+    data[username][topic] = { best: isNewBest ? score : prev.best, attempts: prev.attempts + 1, missed: prev.missed || [] };
     saveProgress(data);
     return isNewBest;
+  }
+
+  // Tracks a single answered question so it can be retried later: wrong answers
+  // join the missed list, right answers (including on a retry) drop off it.
+  function recordAnswer(username, topic, questionId, correct) {
+    const data = loadProgress();
+    if (!data[username]) data[username] = { html: blankTopicProgress(), css: blankTopicProgress() };
+    if (!data[username][topic]) data[username][topic] = blankTopicProgress();
+    const record = data[username][topic];
+    const missed = record.missed || [];
+    const idx = missed.indexOf(questionId);
+    if (correct) {
+      if (idx !== -1) missed.splice(idx, 1);
+    } else if (idx === -1) {
+      missed.push(questionId);
+    }
+    record.missed = missed;
+    saveProgress(data);
   }
 
   function resetProgress(username) {
@@ -90,6 +110,7 @@ const Auth = (function () {
     getCurrentAccount: getCurrentAccount,
     getTopicProgress: getTopicProgress,
     recordScore: recordScore,
+    recordAnswer: recordAnswer,
     resetProgress: resetProgress,
     totalPoints: totalPoints,
     leaderboard: leaderboard

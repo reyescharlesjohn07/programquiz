@@ -8,6 +8,10 @@
       .replace(/"/g, "&quot;");
   }
 
+  function firstName(fullName) {
+    return String(fullName).trim().split(/\s+/)[0];
+  }
+
   function maxScoreFor(topic) {
     return ROUND_ORDER.reduce(function (sum, level) {
       return sum + QUESTIONS[topic][level].length * POINTS[level];
@@ -72,6 +76,14 @@
         el.innerHTML = "Best score: <strong>Not attempted yet</strong> (max " + max + " pts)";
       }
     });
+
+    document.querySelectorAll("[data-missed]").forEach(function (el) {
+      const topic = el.getAttribute("data-missed");
+      const missedCount = Auth.getTopicProgress(username, topic).missed.length;
+      el.innerHTML = missedCount > 0
+        ? "<a class=\"missed-link\" href=\"quiz.html?topic=" + topic + "&mode=missed\">Review " + missedCount + " missed question" + (missedCount > 1 ? "s" : "") + "</a>"
+        : "";
+    });
   }
 
   function renderStats(username) {
@@ -91,7 +103,7 @@
       const isMe = row.username === currentUsername;
       html += "<div class=\"leaderboard-row" + (isMe ? " is-me" : "") + "\">" +
         "<span class=\"lb-rank\">#" + (i + 1) + "</span>" +
-        "<span class=\"lb-name\">" + escapeHtml(row.name) + (isMe ? " (you)" : "") + "</span>" +
+        "<span class=\"lb-name\">" + escapeHtml(firstName(row.name)) + (isMe ? " (you)" : "") + "</span>" +
         "<span class=\"lb-total\">" + row.total + " pts</span>" +
         "<span class=\"lb-detail\">HTML " + row.html + " &middot; CSS " + row.css + "</span>" +
         "</div>";

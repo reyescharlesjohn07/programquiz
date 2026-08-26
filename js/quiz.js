@@ -17,17 +17,32 @@
     return;
   }
   const player = account.name;
+  const isMissedMode = params.get("mode") === "missed";
 
-  document.getElementById("quiz-title").textContent = topicLabels[topic] + " Quiz";
-  document.getElementById("quiz-player").textContent = "Playing as " + player;
-
-  // Build a flat, ordered list of questions tagged with their difficulty.
-  const items = [];
+  // Build a flat, ordered list of every question, tagged with its difficulty
+  // and a stable id ("html:easy:3") used to track which ones get missed.
+  let items = [];
   ROUND_ORDER.forEach(function (level) {
-    QUESTIONS[topic][level].forEach(function (q) {
-      items.push(Object.assign({ level: level }, q));
+    QUESTIONS[topic][level].forEach(function (q, i) {
+      items.push(Object.assign({ level: level, id: topic + ":" + level + ":" + i }, q));
     });
   });
+
+  if (isMissedMode) {
+    const missedIds = Auth.getTopicProgress(account.username, topic).missed;
+    items = items.filter(function (item) { return missedIds.indexOf(item.id) !== -1; });
+  }
+
+  document.getElementById("quiz-title").textContent =
+    topicLabels[topic] + (isMissedMode ? " — Missed Questions Review" : " Quiz");
+  document.getElementById("quiz-player").textContent = "Playing as " + player;
+
+  if (isMissedMode && items.length === 0) {
+    document.getElementById("question-card").innerHTML =
+      "<p>You have no missed " + topicLabels[topic] + " questions right now &mdash; nice work!</p>" +
+      "<p><a href=\"index.html\">Back to Home</a> &middot; <a href=\"quiz.html?topic=" + topic + "\">Take the full quiz</a></p>";
+    return;
+  }
 
   const maxScore = items.reduce((sum, item) => sum + POINTS[item.level], 0);
 
@@ -35,8 +50,8 @@
   let score = 0;
   const answers = []; // { chosenIndex, correct }
   const roundStats = { easy: { correct: 0, total: 0 }, medium: { correct: 0, total: 0 }, hard: { correct: 0, total: 0 } };
-  ROUND_ORDER.forEach(function (level) {
-    roundStats[level].total = QUESTIONS[topic][level].length;
+  items.forEach(function (item) {
+    roundStats[item.level].total += 1;
   });
 
   const questionCard = document.getElementById("question-card");
@@ -99,6 +114,7 @@
     const item = items[index];
     const correct = chosenIndex === item.answer;
     answers.push({ chosenIndex: chosenIndex, correct: correct });
+    Auth.recordAnswer(account.username, topic, item.id, correct);
 
     if (correct) {
       score += POINTS[item.level];
@@ -135,10 +151,6 @@
     });
   }
 
-  function saveProgress() {
-    return Auth.recordScore(account.username, topic, score);
-  }
-
   function showResults() {
     progressBar.style.width = "100%";
     quizMain.classList.add("hidden");
@@ -146,22 +158,32 @@
     roundLabel.classList.add("hidden");
     resultsEl.classList.remove("hidden");
 
-    const isNewBest = saveProgress();
+    const isNewBest = isMissedMode ? false : Auth.recordScore(account.username, topic, score);
     const percent = Math.round((score / maxScore) * 100);
 
     let html = "<div class=\"results-summary\">";
-    html += "<div>" + escapeHtml(player) + "'s " + topicLabels[topic] + " Quiz &mdash; Complete</div>";
+    html += "<div>" + escapeHtml(player) + "'s " + topicLabels[topic] +
+      (isMissedMode ? " Review &mdash; Complete" : " Quiz &mdash; Complete") + "</div>";
     html += "<div class=\"results-score\">" + score + " <span>/ " + maxScore + " pts (" + percent + "%)</span></div>";
     html += "<div class=\"results-breakdown\">";
     ROUND_ORDER.forEach(function (level) {
       const stat = roundStats[level];
+      if (stat.total === 0) return;
       html += "<div class=\"score-item\"><span class=\"badge " + level + "\">" + level.charAt(0).toUpperCase() + level.slice(1) + "</span> " +
         stat.correct + " / " + stat.total + " correct</div>";
     });
     html += "</div>";
-    if (isNewBest) html += "<div class=\"new-best\">New personal best!</div>";
+    if (isMissedMode) {
+      html += "<div class=\"new-best\">This was a practice review, so it doesn't count toward your leaderboard score &mdash; only your missed-questions list was updated.</div>";
+    } else if (isNewBest) {
+      html += "<div class=\"new-best\">New personal best!</div>";
+    }
     html += "<div class=\"results-actions\">";
-    html += "<a class=\"btn btn-start\" href=\"quiz.html?topic=" + topic + "\">Retry Quiz</a>";
+    if (isMissedMode) {
+      html += "<a class=\"btn btn-start\" href=\"quiz.html?topic=" + topic + "&mode=missed\">Review Missed Again</a>";
+    } else {
+      html += "<a class=\"btn btn-start\" href=\"quiz.html?topic=" + topic + "\">Retry Quiz</a>";
+    }
     html += "<a class=\"btn btn-ghost\" href=\"index.html\">Back to Home</a>";
     html += "</div></div>";
 

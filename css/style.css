@@ -48,11 +48,32 @@ code, .mono {
   font-size: 0.95em;
 }
 
+.site-owner {
+  padding: 1rem 1.25rem 0;
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: var(--brand-strong);
+  letter-spacing: 0.3px;
+  text-shadow: 0 0 24px rgba(139, 124, 246, 0.6);
+}
+
 /* ---------- header ---------- */
 .site-header {
   color: var(--ink);
   padding: 3rem 1.5rem 2rem;
   text-align: center;
+}
+.brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.logo-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(76, 29, 149, 0.55);
 }
 .brand {
   font-family: "Cascadia Code", "Consolas", monospace;
@@ -195,6 +216,17 @@ code, .mono {
 }
 .best-score { font-size: 0.9rem; color: var(--muted); }
 .best-score strong { color: var(--ink); }
+
+.missed-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--medium);
+  text-decoration: none;
+}
+.missed-link:hover { text-decoration: underline; }
 
 .btn {
   display: inline-block;

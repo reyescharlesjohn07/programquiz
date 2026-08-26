@@ -4,12 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ProgramQuiz &mdash; HTML &amp; CSS Practice Quizzes</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo.svg">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
+<div class="site-owner">Charles</div>
+
 <header class="site-header">
-  <div class="brand">&lt;ProgramQuiz/&gt;</div>
+  <div class="brand-row">
+    <img src="assets/logo.svg" alt="ProgramQuiz logo" class="logo-mark">
+    <div class="brand">&lt;ProgramQuiz/&gt;</div>
+  </div>
   <p class="tagline">Personal HTML &amp; CSS practice quizzes &mdash; BSIT Year 1</p>
 </header>
 
@@ -52,6 +58,7 @@
         <span class="max-score">Max score: 60 pts</span>
       </div>
       <div class="best-score" data-best="html">Best score: <strong>Not attempted yet</strong></div>
+      <div class="missed-line" data-missed="html"></div>
       <a class="btn btn-start" href="quiz.html?topic=html">Start HTML Quiz</a>
     </article>
 
@@ -64,6 +71,7 @@
         <span class="max-score">Max score: 60 pts</span>
       </div>
       <div class="best-score" data-best="css">Best score: <strong>Not attempted yet</strong></div>
+      <div class="missed-line" data-missed="css"></div>
       <a class="btn btn-start" href="quiz.html?topic=css">Start CSS Quiz</a>
     </article>
 
