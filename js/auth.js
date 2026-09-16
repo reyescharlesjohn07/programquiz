@@ -132,16 +132,26 @@ const Auth = (function () {
 
   const MAX_HISTORY = 30;
 
-  // Saves a completed attempt (normal or missed-review) for the history page.
+  // Saves an attempt for the history page — normal quiz, missed-review, or a
+  // still-in-progress run (attempt.complete === false). Upserts by attempt.id,
+  // so calling this after every single answer just updates the same entry in
+  // place instead of creating duplicates. That's what makes a quiz left
+  // unfinished (closed tab, clicked Home, browser crash) still show up in
+  // history instead of vanishing — only recordScore's best/attempts count
+  // requires actually finishing.
   // Only stores { id, chosenIndex, correct } per question — the question text
   // itself is looked up from QUESTIONS at render time, not duplicated here.
   function recordAttempt(username, attempt) {
     const data = loadProgress();
     if (!data[username]) data[username] = { html: blankTopicProgress(), css: blankTopicProgress(), history: [] };
     if (!data[username].history) data[username].history = [];
-    data[username].history.unshift(attempt);
-    if (data[username].history.length > MAX_HISTORY) {
-      data[username].history.length = MAX_HISTORY;
+    const history = data[username].history;
+    const idx = history.findIndex(function (a) { return a.id === attempt.id; });
+    if (idx !== -1) {
+      history[idx] = attempt;
+    } else {
+      history.unshift(attempt);
+      if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
     }
     persistUser(username, data);
   }

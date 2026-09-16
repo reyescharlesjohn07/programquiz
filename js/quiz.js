@@ -54,6 +54,12 @@
 
   const maxScore = items.reduce((sum, item) => sum + POINTS[item.level], 0);
 
+  // Identifies this one quiz session so repeated saves (after every answer)
+  // update the same history entry instead of creating duplicates — see
+  // saveSnapshot() below.
+  const attemptId = topic + ":" + (isMissedMode ? "missed" : "normal") + ":" + Date.now();
+  const attemptStarted = Date.now();
+
   let index = 0;
   let score = 0;
   const answers = []; // { chosenIndex, correct }
@@ -87,6 +93,28 @@
     return "<pre class=\"code-block\"><code>" + escapeHtml(example) + "</code></pre>";
   }
 
+  // Upserts this session's history entry (same attemptId every call) so
+  // progress is saved after every single answer, not just at the very end —
+  // that way closing the tab, clicking Home, or the browser crashing mid-quiz
+  // never loses what was already answered. Only recordScore (leaderboard
+  // best/attempts) still requires finishing the whole quiz.
+  function saveSnapshot(complete) {
+    if (answers.length === 0) return;
+    Auth.recordAttempt(account.username, {
+      id: attemptId,
+      topic: topic,
+      mode: isMissedMode ? "missed" : "normal",
+      timestamp: attemptStarted,
+      complete: complete,
+      totalQuestions: items.length,
+      score: score,
+      maxScore: maxScore,
+      answers: answers.map(function (ans, i) {
+        return { id: items[i].id, chosenIndex: ans.chosenIndex, correct: ans.correct };
+      })
+    });
+  }
+
   function renderQuestion() {
     const item = items[index];
     progressBar.style.width = ((index / items.length) * 100) + "%";
@@ -95,7 +123,8 @@
       POINTS[item.level] + " pt" + (POINTS[item.level] > 1 ? "s" : "");
 
     let html = "";
-    html += "<div class=\"q-meta\"><span class=\"q-count\">Question " + (index + 1) + " of " + items.length + "</span></div>";
+    html += "<div class=\"q-meta\"><span class=\"q-count\">Question " + (index + 1) + " of " + items.length + "</span>" +
+      "<button type=\"button\" class=\"btn btn-ghost btn-small\" id=\"exit-btn\">Exit &amp; Save</button></div>";
     html += "<p class=\"q-text\">" + escapeHtml(item.q) + "</p>";
     if (item.code) {
       html += codeBlock(item.code);
@@ -116,6 +145,11 @@
         handleAnswer(parseInt(btn.getAttribute("data-i"), 10));
       });
     });
+
+    document.getElementById("exit-btn").addEventListener("click", function () {
+      saveSnapshot(false);
+      window.location.href = "index.html";
+    });
   }
 
   function handleAnswer(chosenIndex) {
@@ -123,6 +157,7 @@
     const correct = chosenIndex === item.answer;
     answers.push({ chosenIndex: chosenIndex, correct: correct });
     Auth.recordAnswer(account.username, topic, item.id, correct);
+    saveSnapshot(false);
 
     if (correct) {
       score += POINTS[item.level];
@@ -167,16 +202,7 @@
     resultsEl.classList.remove("hidden");
 
     const isNewBest = isMissedMode ? false : Auth.recordScore(account.username, topic, score);
-    Auth.recordAttempt(account.username, {
-      topic: topic,
-      mode: isMissedMode ? "missed" : "normal",
-      timestamp: Date.now(),
-      score: score,
-      maxScore: maxScore,
-      answers: items.map(function (item, i) {
-        return { id: item.id, chosenIndex: answers[i].chosenIndex, correct: answers[i].correct };
-      })
-    });
+    saveSnapshot(true);
     const percent = Math.round((score / maxScore) * 100);
 
     let html = "<div class=\"results-summary\">";

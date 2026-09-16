@@ -253,6 +253,7 @@ code, .mono {
   border: 1px solid var(--border);
 }
 .btn-ghost:hover { border-color: var(--wrong); color: var(--wrong); }
+.btn-small { padding: 0.35rem 0.75rem; font-size: 0.8rem; margin-top: 0; }
 
 .stats-card h2 { margin-top: 0; color: var(--ink); }
 .progress-summary {

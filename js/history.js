@@ -52,14 +52,20 @@
 
     let html = "<div class=\"history-list\">";
     history.forEach(function (attempt) {
+      // Older saved entries predate the `complete` flag — treat those as finished.
+      const isComplete = attempt.complete !== false;
       const correctCount = attempt.answers.filter(function (a) { return a.correct; }).length;
+      const answeredNote = (!isComplete && attempt.totalQuestions)
+        ? " &middot; " + attempt.answers.length + " of " + attempt.totalQuestions + " answered"
+        : "";
       html += "<details class=\"card history-entry\">";
       html += "<summary class=\"history-summary\">";
       html += "<span class=\"history-topic\">" + topicLabels[attempt.topic] +
-        (attempt.mode === "missed" ? " &middot; Missed Review" : "") + "</span>";
+        (attempt.mode === "missed" ? " &middot; Missed Review" : "") +
+        (isComplete ? "" : " <span class=\"badge medium\">In Progress</span>") + "</span>";
       html += "<span class=\"history-date\">" + formatDate(attempt.timestamp) + "</span>";
       html += "<span class=\"history-score\">" + attempt.score + " / " + attempt.maxScore + " pts &middot; " +
-        correctCount + "/" + attempt.answers.length + " correct</span>";
+        correctCount + "/" + attempt.answers.length + " correct" + answeredNote + "</span>";
       html += "</summary>";
       html += "<div class=\"review-list\">";
       attempt.answers.forEach(function (ans, i) {
